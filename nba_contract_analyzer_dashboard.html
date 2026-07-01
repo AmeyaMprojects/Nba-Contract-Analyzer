@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Contract Analyzer — 2025-26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E16;
+    --panel:#121826;
+    --panel-2:#171F30;
+    --border:#252E42;
+    --text:#EDEFF6;
+    --text-dim:#8C96AC;
+    --text-faint:#5C6680;
+    --amber:#FF8A3D;
+    --emerald:#3ED9A3;
+    --red:#FF6262;
+    --blue:#5B9BFF;
+    --violet:#9D7BFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  body{min-height:100vh;}
+  ::selection{background:var(--amber);color:#0A0E16;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  a{color:inherit;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+
+  /* ---------- shell ---------- */
+  .shell{max-width:1320px;margin:0 auto;padding:28px 24px 80px;}
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:18px;margin-bottom:28px;border-bottom:1px solid var(--border);padding-bottom:22px;}
+  .brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin:0 0 6px;}
+  .brand-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:32px;margin:0;letter-spacing:-0.01em;}
+  .brand-sub{color:var(--text-dim);font-size:13.5px;margin-top:6px;max-width:560px;line-height:1.5;}
+  .top-stats{display:flex;gap:26px;flex-wrap:wrap;}
+  .top-stat{text-align:right;}
+  .top-stat .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);margin-bottom:3px;}
+  .top-stat .value{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:4px;margin-bottom:22px;border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;background:var(--panel);}
+  .tab-btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;padding:9px 18px;border-radius:7px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s;}
+  .tab-btn.active{background:var(--amber);color:#0A0E16;}
+  .tab-btn:not(.active):hover{color:var(--text);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* ---------- cap gauge (signature element) ---------- */
+  .gauge-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:24px;}
+  .gauge-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;margin:0 0 4px;}
+  .gauge-sub{color:var(--text-dim);font-size:12px;margin:0 0 18px;}
+  .gauge-track{position:relative;height:34px;border-radius:8px;overflow:visible;background:linear-gradient(90deg,
+      #1C2436 0%, #1C2436 var(--p-cap),
+      #2A2417 var(--p-cap), #2A2417 var(--p-tax),
+      #2E1F1A var(--p-tax), #2E1F1A var(--p-a1),
+      #2E1517 var(--p-a1), #2E1517 100%);
+    border:1px solid var(--border);
+  }
+  .gauge-marker{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text-faint);}
+  .gauge-marker .tag{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;}
+  .gauge-marker .amt{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint);white-space:nowrap;}
+  .gauge-fill{position:absolute;top:0;bottom:0;left:0;border-radius:8px 0 0 8px;background:linear-gradient(90deg,var(--blue),var(--violet));opacity:.85;}
+  .gauge-fill-label{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#0A0E16;background:rgba(255,255,255,.85);padding:1px 6px;border-radius:4px;}
+  .legend-row{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);}
+  .legend-dot{width:9px;height:9px;border-radius:2px;}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+  input[type=text],select{
+    background:var(--panel);border:1px solid var(--border);color:var(--text);
+    padding:9px 12px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;outline:none;
+  }
+  input[type=text]{min-width:220px;}
+  input[type=text]:focus,select:focus{border-color:var(--amber);}
+  .result-count{color:var(--text-faint);font-size:12px;margin-left:auto;font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{color:var(--text);}
+  thead th.sorted{color:var(--amber);}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+  tbody tr{cursor:pointer;transition:background .1s;}
+  tbody tr:hover{background:var(--panel-2);}
+  tbody tr:last-child td{border-bottom:none;}
+  .player-name{font-weight:600;}
+  .player-meta{color:var(--text-faint);font-size:11px;}
+  .num{font-family:'IBM Plex Mono',monospace;}
+  .right{text-align:right;}
+
+  .chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:600;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+  .chip-bargain2{background:rgba(62,217,163,.18);color:var(--emerald);}
+  .chip-bargain{background:rgba(62,217,163,.12);color:var(--emerald);}
+  .chip-fair{background:rgba(140,150,172,.15);color:var(--text-dim);}
+  .chip-overpay{background:rgba(255,98,98,.12);color:var(--red);}
+  .chip-overpay2{background:rgba(255,98,98,.2);color:var(--red);}
+  .chip-rookie{background:rgba(91,155,255,.15);color:var(--blue);}
+  .caveat-flag{color:var(--text-faint);font-size:10px;margin-left:4px;}
+
+  /* ---------- detail modal ---------- */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(5,7,12,.7);backdrop-filter:blur(2px);z-index:50;align-items:center;justify-content:center;padding:24px;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:28px;position:relative;}
+  .modal-close{position:absolute;top:18px;right:18px;background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;}
+  .modal-close:hover{color:var(--text);}
+  .modal h2{font-family:'Space Grotesk',sans-serif;margin:0 0 2px;font-size:24px;}
+  .modal .sub{color:var(--text-dim);font-size:13px;margin-bottom:18px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+  .stat-box{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+  .stat-box .l{font-size:9.5px;text-transform:uppercase;color:var(--text-faint);letter-spacing:.06em;}
+  .stat-box .v{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;margin-top:2px;}
+  .section-label{font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin:20px 0 10px;}
+  .timeline{display:flex;flex-direction:column;gap:6px;}
+  .timeline-row{display:grid;grid-template-columns:64px 1fr 90px;align-items:center;gap:10px;}
+  .timeline-year{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
+  .timeline-bar-bg{background:var(--panel-2);border-radius:5px;height:18px;overflow:hidden;border:1px solid var(--border);}
+  .timeline-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--violet));border-radius:5px 0 0 5px;}
+  .timeline-amt{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right;}
+  .value-compare{display:flex;gap:14px;}
+  .vc-box{flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+  .vc-box .l{font-size:10px;text-transform:uppercase;color:var(--text-faint);letter-spacing:.06em;}
+  .vc-box .v{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;}
+  .grade-banner{margin-top:14px;padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.5;}
+  .note{color:var(--text-faint);font-size:11.5px;margin-top:14px;line-height:1.5;}
+
+  /* ---------- team panel ---------- */
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+  .team-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s;}
+  .team-card:hover{border-color:var(--amber);}
+  .team-card .tname{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+  .team-card .tstatus{font-size:11px;margin-top:2px;}
+  .team-mini-gauge{height:8px;border-radius:4px;background:var(--panel-2);margin-top:12px;overflow:hidden;position:relative;border:1px solid var(--border);}
+  .team-mini-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--violet));}
+  .team-payroll{font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:10px;}
+  .team-exceptions{margin-top:8px;font-size:10.5px;color:var(--text-faint);}
+
+  /* ---------- glossary ---------- */
+  .glossary{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+  .gloss-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+  .gloss-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 8px;color:var(--amber);}
+  .gloss-card p{font-size:12.5px;color:var(--text-dim);line-height:1.6;margin:0;}
+
+  footer{margin-top:50px;border-top:1px solid var(--border);padding-top:20px;color:var(--text-faint);font-size:11.5px;line-height:1.7;}
+
+  @media (max-width:720px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .top-stats{gap:16px;}
+    thead th:nth-child(n+6),tbody td:nth-child(n+6){display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div>
+      <p class="brand-eyebrow">2025-26 Season · Live Cap Sheet</p>
+      <h1 class="brand-title">NBA Contract Analyzer</h1>
+      <p class="brand-sub">Performance-based market value vs. actual pay, read through the 2023 CBA's actual mechanics — rookie scale, supermax tiers, Bird rights, and the apron system that's now reshaping every front office decision.</p>
+    </div>
+    <div class="top-stats" id="topStats"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="players">Players</button>
+    <button class="tab-btn" data-tab="teams">Teams</button>
+    <button class="tab-btn" data-tab="nuances">CBA Nuances</button>
+  </div>
+
+  <!-- PLAYERS PANEL -->
+  <div class="panel active" id="panel-players">
+    <div class="gauge-wrap">
+      <p class="gauge-title">League salary structure, 2025-26</p>
+      <p class="gauge-sub">Every team's spending falls somewhere on this line. The two apron lines (added in the 2023 CBA) are hard behavioral cutoffs, not just tax penalties.</p>
+      <div id="leagueGauge"></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchBox" placeholder="Search player or team…">
+      <select id="gradeFilter">
+        <option value="">All grades</option>
+      </select>
+      <select id="teamFilter">
+        <option value="">All teams</option>
+      </select>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th data-key="player">Player</th>
+          <th data-key="team">Tm</th>
+          <th data-key="salary_2025_26" class="right">2025-26 Salary</th>
+          <th data-key="cap_pct" class="right">% Cap</th>
+          <th data-key="type">Contract Type</th>
+          <th data-key="surplus_value" class="right">Surplus</th>
+          <th data-key="grade">Grade</th>
+        </tr>
+      </thead>
+      <tbody id="playerRows"></tbody>
+    </table>
+  </div>
+
+  <!-- TEAMS PANEL -->
+  <div class="panel" id="panel-teams">
+    <p class="note" style="margin-bottom:18px;">Coverage note: this dataset tracks ~100 of the league's highest-minute, highest-salary players (the ones that actually move the needle on cap sheets), not all 450+ roster spots. Team totals below are therefore a <strong style="color:var(--text-dim)">partial</strong> payroll — real total payroll and apron status will run higher. The production scraper in <code class="mono">scrapers/</code> pulls full team pages to close this gap.</p>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+
+  <!-- NUANCES PANEL -->
+  <div class="panel" id="panel-nuances">
+    <p class="note" style="margin-bottom:18px;font-size:13px;">This is the part the 2022 version of this project never modeled at all — it only ever compared stats to a single salary number. Here's what actually governs what a player can be paid and how a team can build around them.</p>
+    <div class="glossary" id="glossaryGrid"></div>
+  </div>
+
+  <footer>
+    Data: basketball-reference.com (contracts/players.html, 2025-26 per-game &amp; advanced stats), pulled live.
+    Market-value model: Ridge regression trained on <span id="ftrainN" class="mono"></span> veteran (non-rookie-scale) contracts —
+    small-sample, illustrative rather than a precise valuation; see README for methodology and limitations.
+    Rookie-scale detection is heuristic (age ≤ 22 and salary ≤ $16M) pending a real draft-year field from the production scraper.
+  </footer>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+const DATA = {"meta": {"season": "2025-26", "cap": 154647000, "tax": 187895000, "apron1": 195945000, "apron2": 207824000, "next_season": "2026-27", "next_cap": 165000000, "n_players": 101, "n_training_players": 89, "feature_importances": {"ppg": 0.029, "rpg": 0.016, "apg": 0.001, "spg": 0.012, "bpg": 0.013, "ts_pct": 0.003, "usg_pct": 0.025, "WS": -0.005, "VORP": -0.005, "age": 0.034}, "data_source": "basketball-reference.com (contracts/players.html, 2025-26 per-game & advanced stats)", "generated_note": "Snapshot pulled live; full-league refresh requires running scrapers/ locally."}, "players": [{"player": "Luka Don\u010di\u0107", "team": "LAL", "pos": "PG", "age": 26, "stats": {"gp": 64, "ppg": 33.5, "rpg": 7.7, "apg": 8.3, "ts_pct": 0.616, "per": 27.9, "ws": 9.5, "vorp": 6.6, "bpm": 9.3}, "contract": {"salary_2025_26": 45999660.0, "salary_2026_27": 49800000.0, "years_remaining": 4, "total_remaining_value": 207351660.0, "guaranteed_total": 149583660.0, "cap_pct": 0.2974, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.3721, "predicted_aav": 57539128, "surplus_value": 11539468, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Shai Gilgeous-Alexander", "team": "OKC", "pos": "PG", "age": 27, "stats": {"gp": 68, "ppg": 31.1, "rpg": 4.3, "apg": 6.6, "ts_pct": 0.665, "per": 30.8, "ws": 15.2, "vorp": 7.8, "bpm": 11.7}, "contract": {"salary_2025_26": 38333050.0, "salary_2026_27": 40806150.0, "years_remaining": 6, "total_remaining_value": 352441600.0, "guaranteed_total": 276795400.0, "cap_pct": 0.2479, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.3053, "predicted_aav": 47212774, "surplus_value": 8879724, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Anthony Edwards", "team": "MIN", "pos": "SG", "age": 24, "stats": {"gp": 61, "ppg": 28.8, "rpg": 5.0, "apg": 3.7, "ts_pct": 0.617, "per": 21.8, "ws": 6.5, "vorp": 3.5, "bpm": 4.5}, "contract": {"salary_2025_26": 45550512.0, "salary_2026_27": 48924624.0, "years_remaining": 4, "total_remaining_value": 202446720.0, "guaranteed_total": 202446720.0, "cap_pct": 0.2945, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.271, "predicted_aav": 41913927, "surplus_value": -3636585, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Jaylen Brown", "team": "BOS", "pos": "SF", "age": 29, "stats": {"gp": 71, "ppg": 28.7, "rpg": 6.9, "apg": 5.1, "ts_pct": 0.573, "per": 22.0, "ws": 6.9, "vorp": 3.3, "bpm": 3.3}, "contract": {"salary_2025_26": 53142264.0, "salary_2026_27": 57078728.0, "years_remaining": 4, "total_remaining_value": 236187840.0, "guaranteed_total": 236187840.0, "cap_pct": 0.3436, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3318, "predicted_aav": 51309641, "surplus_value": -1832623, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Tyrese Maxey", "team": "PHI", "pos": "PG", "age": 25, "stats": {"gp": 70, "ppg": 28.3, "rpg": 4.1, "apg": 6.6, "ts_pct": 0.588, "per": 21.9, "ws": 8.7, "vorp": 4.9, "bpm": 5.4}, "contract": {"salary_2025_26": 37958760.0, "salary_2026_27": 40770520.0, "years_remaining": 4, "total_remaining_value": 168705600.0, "guaranteed_total": 168705600.0, "cap_pct": 0.2455, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2761, "predicted_aav": 42704057, "surplus_value": 4745297, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Donovan Mitchell", "team": "CLE", "pos": "SG", "age": 29, "stats": {"gp": 70, "ppg": 27.9, "rpg": 4.5, "apg": 5.7, "ts_pct": 0.613, "per": 22.9, "ws": 8.2, "vorp": 4.2, "bpm": 5.1}, "contract": {"salary_2025_26": 46394100.0, "salary_2026_27": 50105628.0, "years_remaining": 3, "total_remaining_value": 150316884.0, "guaranteed_total": 96499728.0, "cap_pct": 0.3, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2978, "predicted_aav": 46053429, "surplus_value": -340671, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Kawhi Leonard", "team": "LAC", "pos": "SF", "age": 34, "stats": {"gp": 65, "ppg": 27.9, "rpg": 6.4, "apg": 3.6, "ts_pct": 0.629, "per": 27.9, "ws": 9.2, "vorp": 5.3, "bpm": 8.0}, "contract": {"salary_2025_26": 50000000.0, "salary_2026_27": 50300000.0, "years_remaining": 2, "total_remaining_value": 100300000.0, "guaranteed_total": 100300000.0, "cap_pct": 0.3233, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3775, "predicted_aav": 58380239, "surplus_value": 8380239, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Nikola Joki\u0107", "team": "DEN", "pos": "C", "age": 30, "stats": {"gp": 65, "ppg": 27.7, "rpg": 12.9, "apg": 10.7, "ts_pct": 0.67, "per": 32.3, "ws": 14.9, "vorp": 9.2, "bpm": 14.2}, "contract": {"salary_2025_26": 55224526.0, "salary_2026_27": 59033114.0, "years_remaining": 3, "total_remaining_value": 177099342.0, "guaranteed_total": 114257640.0, "cap_pct": 0.3571, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.32, "predicted_aav": 49480509, "surplus_value": -5744017, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Giannis Antetokounmpo", "team": "MIL", "pos": "PF", "age": 31, "stats": {"gp": 36, "ppg": 27.6, "rpg": 9.8, "apg": 5.4, "ts_pct": 0.658, "per": 32.6, "ws": 5.0, "vorp": 3.0, "bpm": 9.5}, "contract": {"salary_2025_26": 54126450.0, "salary_2026_27": 58456566.0, "years_remaining": 3, "total_remaining_value": 175369698.0, "guaranteed_total": 112583016.0, "cap_pct": 0.35, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.4006, "predicted_aav": 61957185, "surplus_value": 7830735, "grade": "Good value", "small_sample_caveat": true}}, {"player": "Joel Embiid", "team": "PHI", "pos": "C", "age": 31, "stats": {"gp": 38, "ppg": 26.9, "rpg": 7.7, "apg": 3.9, "ts_pct": 0.605, "per": 24.7, "ws": 4.1, "vorp": 2.1, "bpm": 4.9}, "contract": {"salary_2025_26": 55224526.0, "salary_2026_27": 58100000.0, "years_remaining": 4, "total_remaining_value": 243468526.0, "guaranteed_total": 176072526.0, "cap_pct": 0.3571, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3401, "predicted_aav": 52590188, "surplus_value": -2634338, "grade": "Fair value", "small_sample_caveat": true}}, {"player": "Lauri Markkanen", "team": "UTA", "pos": "PF", "age": 28, "stats": {"gp": 42, "ppg": 26.7, "rpg": 6.9, "apg": 2.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 46394100.0, "salary_2026_27": 46113154.0, "years_remaining": 4, "total_remaining_value": 195868144.0, "guaranteed_total": 195868144.0, "cap_pct": 0.3, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2358, "predicted_aav": 36471539, "surplus_value": -9922561, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Stephen Curry", "team": "GSW", "pos": "PG", "age": 37, "stats": {"gp": 43, "ppg": 26.6, "rpg": 3.6, "apg": 4.7, "ts_pct": 0.637, "per": 22.6, "ws": 4.1, "vorp": 2.5, "bpm": 5.4}, "contract": {"salary_2025_26": 59606817.0, "salary_2026_27": 62587158.0, "years_remaining": 2, "total_remaining_value": 122193975.0, "guaranteed_total": 122193975.0, "cap_pct": 0.3854, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3646, "predicted_aav": 56385224, "surplus_value": -3221593, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Devin Booker", "team": "PHO", "pos": "SG", "age": 29, "stats": {"gp": 64, "ppg": 26.1, "rpg": 3.9, "apg": 6.0, "ts_pct": 0.585, "per": 20.4, "ws": 6.5, "vorp": 2.3, "bpm": 2.2}, "contract": {"salary_2025_26": 53142264.0, "salary_2026_27": 57078728.0, "years_remaining": 5, "total_remaining_value": 304493364.0, "guaranteed_total": 235302136.0, "cap_pct": 0.3436, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2567, "predicted_aav": 39698768, "surplus_value": -13443496, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Kevin Durant", "team": "HOU", "pos": "SF", "age": 37, "stats": {"gp": 78, "ppg": 26.0, "rpg": 5.5, "apg": 4.8, "ts_pct": 0.641, "per": 21.1, "ws": 10.7, "vorp": 4.7, "bpm": 4.5}, "contract": {"salary_2025_26": 54708609.0, "salary_2026_27": 43902439.0, "years_remaining": 3, "total_remaining_value": 144708609.0, "guaranteed_total": 98611048.0, "cap_pct": 0.3538, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3241, "predicted_aav": 50120660, "surplus_value": -4587949, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Jalen Brunson", "team": "NYK", "pos": "PG", "age": 29, "stats": {"gp": 74, "ppg": 26.0, "rpg": 3.3, "apg": 6.8, "ts_pct": 0.58, "per": 20.1, "ws": 8.8, "vorp": 3.3, "bpm": 3.1}, "contract": {"salary_2025_26": 34944001.0, "salary_2026_27": 37739521.0, "years_remaining": 4, "total_remaining_value": 156549124.0, "guaranteed_total": 113218563.0, "cap_pct": 0.226, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2578, "predicted_aav": 39861066, "surplus_value": 4917065, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Jamal Murray", "team": "DEN", "pos": "PG", "age": 28, "stats": {"gp": 75, "ppg": 25.4, "rpg": 4.4, "apg": 7.1, "ts_pct": 0.622, "per": 21.8, "ws": 9.5, "vorp": 4.1, "bpm": 4.1}, "contract": {"salary_2025_26": 46394100.0, "salary_2026_27": 50105628.0, "years_remaining": 4, "total_remaining_value": 207845568.0, "guaranteed_total": 207845568.0, "cap_pct": 0.3, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2097, "predicted_aav": 32425520, "surplus_value": -13968580, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Victor Wembanyama", "team": "SAS", "pos": "C", "age": 22, "stats": {"gp": 64, "ppg": 25.0, "rpg": 11.5, "apg": 3.1, "ts_pct": 0.626, "per": 29.9, "ws": 10.0, "vorp": 6.0, "bpm": 10.7}, "contract": {"salary_2025_26": 13376880.0, "salary_2026_27": 16868246.0, "years_remaining": 2, "total_remaining_value": 30245126.0, "guaranteed_total": 30245126.0, "cap_pct": 0.0865, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.3262, "predicted_aav": 50438298, "surplus_value": 37061418, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "Michael Porter Jr.", "team": "BRK", "pos": "SF", "age": 27, "stats": {"gp": 52, "ppg": 24.2, "rpg": 7.1, "apg": 3.0, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 38333050.0, "salary_2026_27": 40806150.0, "years_remaining": 2, "total_remaining_value": 79139200.0, "guaranteed_total": 50333050.0, "cap_pct": 0.2479, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2227, "predicted_aav": 34443429, "surplus_value": -3889621, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Deni Avdija", "team": "POR", "pos": "SF", "age": 25, "stats": {"gp": 66, "ppg": 24.2, "rpg": 6.9, "apg": 6.7, "ts_pct": 0.6, "per": 20.3, "ws": 7.0, "vorp": 3.5, "bpm": 4.3}, "contract": {"salary_2025_26": 14375000.0, "salary_2026_27": 13125000.0, "years_remaining": 3, "total_remaining_value": 39375000.0, "guaranteed_total": 39375000.0, "cap_pct": 0.093, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2273, "predicted_aav": 35150902, "surplus_value": 20775902, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Pascal Siakam", "team": "IND", "pos": "PF", "age": 31, "stats": {"gp": 62, "ppg": 24.0, "rpg": 6.6, "apg": 3.8, "ts_pct": 0.562, "per": 18.6, "ws": 2.6, "vorp": 1.4, "bpm": 0.7}, "contract": {"salary_2025_26": 45550512.0, "salary_2026_27": 48924624.0, "years_remaining": 3, "total_remaining_value": 146773872.0, "guaranteed_total": 146773872.0, "cap_pct": 0.2945, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2952, "predicted_aav": 45650172, "surplus_value": 99660, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Cade Cunningham", "team": "DET", "pos": "PG", "age": 24, "stats": {"gp": 64, "ppg": 23.9, "rpg": 5.5, "apg": 9.9, "ts_pct": 0.564, "per": 21.6, "ws": 7.9, "vorp": 4.6, "bpm": 6.3}, "contract": {"salary_2025_26": 46394100.0, "salary_2026_27": 50105628.0, "years_remaining": 5, "total_remaining_value": 269085780.0, "guaranteed_total": 269085780.0, "cap_pct": 0.3, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2108, "predicted_aav": 32592840, "surplus_value": -13801260, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "James Harden", "team": "TOT", "pos": "PG", "age": 36, "stats": {"gp": 70, "ppg": 23.6, "rpg": 4.8, "apg": 8.0, "ts_pct": 0.61, "per": 20.7, "ws": 7.7, "vorp": 3.6, "bpm": 3.9}, "contract": {"salary_2025_26": 39182693.0, "salary_2026_27": 42317307.0, "years_remaining": 2, "total_remaining_value": 81500000.0, "guaranteed_total": null, "cap_pct": 0.2534, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.3215, "predicted_aav": 49723184, "surplus_value": 10540491, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Austin Reaves", "team": "LAL", "pos": "SG", "age": 27, "stats": {"gp": 51, "ppg": 23.3, "rpg": 4.7, "apg": 5.5, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 13937574.0, "salary_2026_27": 14898786.0, "years_remaining": 2, "total_remaining_value": 28836360.0, "guaranteed_total": 13937574.0, "cap_pct": 0.0901, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2227, "predicted_aav": 34442980, "surplus_value": 20505406, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Jalen Johnson", "team": "ATL", "pos": "SF", "age": 24, "stats": {"gp": 72, "ppg": 22.5, "rpg": 10.3, "apg": 7.9, "ts_pct": 0.581, "per": 20.4, "ws": 7.5, "vorp": 4.0, "bpm": 4.2}, "contract": {"salary_2025_26": 30000000.0, "salary_2026_27": 30000000.0, "years_remaining": 5, "total_remaining_value": 150000000.0, "guaranteed_total": 150000000.0, "cap_pct": 0.194, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.232, "predicted_aav": 35880610, "surplus_value": 5880610, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Paolo Banchero", "team": "ORL", "pos": "PF", "age": 23, "stats": {"gp": 72, "ppg": 22.2, "rpg": 8.4, "apg": 5.2, "ts_pct": 0.566, "per": 17.6, "ws": 5.0, "vorp": 2.1, "bpm": 1.4}, "contract": {"salary_2025_26": 15334769.0, "salary_2026_27": 41500000.0, "years_remaining": 6, "total_remaining_value": 256034769.0, "guaranteed_total": 201254769.0, "cap_pct": 0.0992, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2, "predicted_aav": 30932906, "surplus_value": 15598137, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Jayson Tatum", "team": "BOS", "pos": "PF", "age": 27, "stats": {"gp": 16, "ppg": 21.8, "rpg": 10.0, "apg": 5.3, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 54126450.0, "salary_2026_27": 58456566.0, "years_remaining": 5, "total_remaining_value": 313933410.0, "guaranteed_total": 242486496.0, "cap_pct": 0.35, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2334, "predicted_aav": 36098186, "surplus_value": -18028264, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Norman Powell", "team": "MIA", "pos": "SG", "age": 32, "stats": {"gp": 58, "ppg": 21.7, "rpg": 3.5, "apg": 2.5, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 20482758.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 20482758.0, "guaranteed_total": 20482758.0, "cap_pct": 0.1324, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2334, "predicted_aav": 36092991, "surplus_value": 15610233, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Trey Murphy III", "team": "NOP", "pos": "SF", "age": 25, "stats": {"gp": 66, "ppg": 21.5, "rpg": 5.7, "apg": 3.8, "ts_pct": 0.613, "per": 18.3, "ws": 6.0, "vorp": 2.6, "bpm": 2.4}, "contract": {"salary_2025_26": 25000000.0, "salary_2026_27": 27000000.0, "years_remaining": 4, "total_remaining_value": 112000000.0, "guaranteed_total": 112000000.0, "cap_pct": 0.1617, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1961, "predicted_aav": 30333588, "surplus_value": 5333588, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Brandon Ingram", "team": "TOR", "pos": "SF", "age": 28, "stats": {"gp": 77, "ppg": 21.5, "rpg": 5.6, "apg": 3.7, "ts_pct": 0.573, "per": 16.3, "ws": 4.6, "vorp": 1.7, "bpm": 0.5}, "contract": {"salary_2025_26": 38095238.0, "salary_2026_27": 40000000.0, "years_remaining": 3, "total_remaining_value": 120000000.0, "guaranteed_total": 78095238.0, "cap_pct": 0.2463, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2175, "predicted_aav": 33628267, "surplus_value": -4466971, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Julius Randle", "team": "MIN", "pos": "PF", "age": 31, "stats": {"gp": 79, "ppg": 21.1, "rpg": 6.7, "apg": 5.0, "ts_pct": 0.585, "per": 18.4, "ws": 7.4, "vorp": 2.3, "bpm": 1.5}, "contract": {"salary_2025_26": 30864198.0, "salary_2026_27": 33333334.0, "years_remaining": 3, "total_remaining_value": 100000000.0, "guaranteed_total": 64197532.0, "cap_pct": 0.1996, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.245, "predicted_aav": 37895860, "surplus_value": 7031662, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Cooper Flagg", "team": "DAL", "pos": "SF", "age": 19, "stats": {"gp": 70, "ppg": 21.0, "rpg": 6.7, "apg": 4.5, "ts_pct": 0.548, "per": 17.9, "ws": 3.8, "vorp": 2.0, "bpm": 1.4}, "contract": {"salary_2025_26": 13825920.0, "salary_2026_27": 14517480.0, "years_remaining": 4, "total_remaining_value": 62730226.0, "guaranteed_total": 28343400.0, "cap_pct": 0.0894, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1689, "predicted_aav": 26124892, "surplus_value": 12298972, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "Zion Williamson", "team": "NOP", "pos": "PF", "age": 25, "stats": {"gp": 62, "ppg": 21.0, "rpg": 5.7, "apg": 3.2, "ts_pct": 0.644, "per": 22.6, "ws": 6.1, "vorp": 2.3, "bpm": 2.9}, "contract": {"salary_2025_26": 39446090.0, "salary_2026_27": 42166510.0, "years_remaining": 3, "total_remaining_value": 126499530.0, "guaranteed_total": 126499530.0, "cap_pct": 0.2551, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1967, "predicted_aav": 30423707, "surplus_value": -9022383, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "LeBron James", "team": "LAL", "pos": "SF", "age": 41, "stats": {"gp": 60, "ppg": 20.9, "rpg": 6.1, "apg": 7.2, "ts_pct": 0.594, "per": 20.8, "ws": 5.4, "vorp": 2.8, "bpm": 3.5}, "contract": {"salary_2025_26": 52627153.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 52627153.0, "guaranteed_total": 52627153.0, "cap_pct": 0.3403, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3465, "predicted_aav": 53590325, "surplus_value": 963172, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Shaedon Sharpe", "team": "POR", "pos": "SG", "age": 22, "stats": {"gp": 50, "ppg": 20.8, "rpg": 4.3, "apg": 2.6, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 8399983.0, "salary_2026_27": 20089287.0, "years_remaining": 5, "total_remaining_value": 98399983.0, "guaranteed_total": 98399983.0, "cap_pct": 0.0543, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "Nickeil Alexander-Walker", "team": "ATL", "pos": "SG", "age": 27, "stats": {"gp": 78, "ppg": 20.8, "rpg": 3.4, "apg": 3.7, "ts_pct": 0.61, "per": 16.5, "ws": 6.3, "vorp": 2.1, "bpm": 1.2}, "contract": {"salary_2025_26": 15161800.0, "salary_2026_27": 14403710.0, "years_remaining": 4, "total_remaining_value": 60647200.0, "guaranteed_total": 44727310.0, "cap_pct": 0.098, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1982, "predicted_aav": 30654211, "surplus_value": 15492411, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Franz Wagner", "team": "ORL", "pos": "SF", "age": 24, "stats": {"gp": 34, "ppg": 20.6, "rpg": 5.2, "apg": 3.3, "ts_pct": 0.588, "per": 19.2, "ws": 2.8, "vorp": 1.2, "bpm": 2.5}, "contract": {"salary_2025_26": 38661750.0, "salary_2026_27": 41754690.0, "years_remaining": 5, "total_remaining_value": 224238150.0, "guaranteed_total": 224238150.0, "cap_pct": 0.25, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1587, "predicted_aav": 24545986, "surplus_value": -14115764, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Tyler Herro", "team": "MIA", "pos": "SG", "age": 26, "stats": {"gp": 33, "ppg": 20.5, "rpg": 4.8, "apg": 4.1, "ts_pct": 0.602, "per": 17.1, "ws": 2.4, "vorp": 1.1, "bpm": 2.0}, "contract": {"salary_2025_26": 31000000.0, "salary_2026_27": 33000000.0, "years_remaining": 2, "total_remaining_value": 64000000.0, "guaranteed_total": 64000000.0, "cap_pct": 0.2005, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1839, "predicted_aav": 28445045, "surplus_value": -2554955, "grade": "Fair value", "small_sample_caveat": true}}, {"player": "Alperen \u015eeng\u00fcn", "team": "HOU", "pos": "C", "age": 23, "stats": {"gp": 72, "ppg": 20.4, "rpg": 8.9, "apg": 6.2, "ts_pct": 0.569, "per": 21.4, "ws": 8.0, "vorp": 3.7, "bpm": 4.2}, "contract": {"salary_2025_26": 33944954.0, "salary_2026_27": 35642202.0, "years_remaining": 5, "total_remaining_value": 185000000.0, "guaranteed_total": 145963303.0, "cap_pct": 0.2195, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2047, "predicted_aav": 31663123, "surplus_value": -2281831, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Anthony Davis", "team": "DAL", "pos": "PF", "age": 32, "stats": {"gp": 20, "ppg": 20.4, "rpg": 11.1, "apg": 2.8, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 54126450.0, "salary_2026_27": 58456566.0, "years_remaining": 3, "total_remaining_value": 175369698.0, "guaranteed_total": 112583016.0, "cap_pct": 0.35, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.3155, "predicted_aav": 48797868, "surplus_value": -5328582, "grade": "Slight overpay", "small_sample_caveat": true}}, {"player": "Brandon Miller", "team": "CHO", "pos": "SF", "age": 23, "stats": {"gp": 65, "ppg": 20.2, "rpg": 4.9, "apg": 3.3, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 11968800.0, "salary_2026_27": 15104626.0, "years_remaining": 2, "total_remaining_value": 27073426.0, "guaranteed_total": 27073426.0, "cap_pct": 0.0774, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1664, "predicted_aav": 25730882, "surplus_value": 13762082, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Dillon Brooks", "team": "PHO", "pos": "SF", "age": 30, "stats": {"gp": 56, "ppg": 20.2, "rpg": 3.6, "apg": 1.8, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 21124110.0, "salary_2026_27": 19992727.0, "years_remaining": 2, "total_remaining_value": 41116837.0, "guaranteed_total": 41116837.0, "cap_pct": 0.1366, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2049, "predicted_aav": 31685696, "surplus_value": 10561586, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Desmond Bane", "team": "ORL", "pos": "SG", "age": 27, "stats": {"gp": 82, "ppg": 20.1, "rpg": 4.1, "apg": 4.1, "ts_pct": 0.607, "per": 16.9, "ws": 7.4, "vorp": 2.3, "bpm": 1.4}, "contract": {"salary_2025_26": 36725670.0, "salary_2026_27": 39446090.0, "years_remaining": 4, "total_remaining_value": 163225200.0, "guaranteed_total": 163225200.0, "cap_pct": 0.2375, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1743, "predicted_aav": 26959460, "surplus_value": -9766210, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Karl-Anthony Towns", "team": "NYK", "pos": "C", "age": 30, "stats": {"gp": 75, "ppg": 20.1, "rpg": 11.9, "apg": 3.0, "ts_pct": 0.619, "per": 22.0, "ws": 9.5, "vorp": 3.1, "bpm": 3.3}, "contract": {"salary_2025_26": 53142264.0, "salary_2026_27": 57078728.0, "years_remaining": 3, "total_remaining_value": 171236184.0, "guaranteed_total": 110220992.0, "cap_pct": 0.3436, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2309, "predicted_aav": 35711730, "surplus_value": -17430534, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Bam Adebayo", "team": "MIA", "pos": "C", "age": 28, "stats": {"gp": 73, "ppg": 20.1, "rpg": 10.0, "apg": 3.2, "ts_pct": 0.551, "per": 18.7, "ws": 6.4, "vorp": 2.4, "bpm": 2.0}, "contract": {"salary_2025_26": 37096620.0, "salary_2026_27": 49800000.0, "years_remaining": 4, "total_remaining_value": 198448620.0, "guaranteed_total": 140680620.0, "cap_pct": 0.2399, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2365, "predicted_aav": 36580966, "surplus_value": -515654, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "LaMelo Ball", "team": "CHO", "pos": "PG", "age": 24, "stats": {"gp": 72, "ppg": 20.1, "rpg": 4.8, "apg": 7.1, "ts_pct": 0.546, "per": 19.7, "ws": 6.2, "vorp": 3.4, "bpm": 4.7}, "contract": {"salary_2025_26": 37958760.0, "salary_2026_27": 40770520.0, "years_remaining": 4, "total_remaining_value": 168705600.0, "guaranteed_total": 168705600.0, "cap_pct": 0.2455, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1523, "predicted_aav": 23554383, "surplus_value": -14404377, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Jimmy Butler", "team": "GSW", "pos": "SF", "age": 36, "stats": {"gp": 38, "ppg": 20.0, "rpg": 5.6, "apg": 4.9, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 54126450.0, "salary_2026_27": 56832773.0, "years_remaining": 2, "total_remaining_value": 110959223.0, "guaranteed_total": 110959223.0, "cap_pct": 0.35, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.263, "predicted_aav": 40676321, "surplus_value": -13450129, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Ja Morant", "team": "MEM", "pos": "PG", "age": 26, "stats": {"gp": 20, "ppg": 19.5, "rpg": 3.3, "apg": 8.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 39446090.0, "salary_2026_27": 42166510.0, "years_remaining": 3, "total_remaining_value": 126499530.0, "guaranteed_total": 126499530.0, "cap_pct": 0.2551, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1378, "predicted_aav": 21309887, "surplus_value": -18136203, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Jalen Duren", "team": "DET", "pos": "C", "age": 22, "stats": {"gp": 70, "ppg": 19.5, "rpg": 10.5, "apg": 2.0, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 6483144.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 6483144.0, "guaranteed_total": 6483144.0, "cap_pct": 0.0419, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "Jaren Jackson Jr.", "team": "TOT", "pos": "C", "age": 26, "stats": {"gp": 48, "ppg": 19.4, "rpg": 5.7, "apg": 2.0, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 35000000.0, "salary_2026_27": 49000000.0, "years_remaining": 5, "total_remaining_value": 240000000.0, "guaranteed_total": 186500000.0, "cap_pct": 0.2263, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1994, "predicted_aav": 30842081, "surplus_value": -4157919, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "RJ Barrett", "team": "TOR", "pos": "SF", "age": 25, "stats": {"gp": 57, "ppg": 19.3, "rpg": 5.3, "apg": 3.3, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 27705357.0, "salary_2026_27": 29616071.0, "years_remaining": 2, "total_remaining_value": 57321428.0, "guaranteed_total": 57321428.0, "cap_pct": 0.1792, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1484, "predicted_aav": 22951852, "surplus_value": -4753505, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Zach LaVine", "team": "SAC", "pos": "SG", "age": 30, "stats": {"gp": 39, "ppg": 19.2, "rpg": 2.8, "apg": 2.3, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 47499660.0, "salary_2026_27": 48967380.0, "years_remaining": 2, "total_remaining_value": 96467040.0, "guaranteed_total": 47499660.0, "cap_pct": 0.3071, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.1617, "predicted_aav": 25005082, "surplus_value": -22494578, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "CJ McCollum", "team": "TOT", "pos": "PG", "age": 34, "stats": {"gp": 76, "ppg": 18.7, "rpg": 3.3, "apg": 3.9, "ts_pct": 0.566, "per": 15.9, "ws": 3.0, "vorp": 1.0, "bpm": -0.3}, "contract": {"salary_2025_26": 30666666.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 30666666.0, "guaranteed_total": 30666666.0, "cap_pct": 0.1983, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2382, "predicted_aav": 36839946, "surplus_value": 6173280, "grade": "Good value", "small_sample_caveat": false}}, {"player": "De'Aaron Fox", "team": "SAS", "pos": "PG", "age": 28, "stats": {"gp": 72, "ppg": 18.6, "rpg": 3.8, "apg": 6.2, "ts_pct": 0.578, "per": 17.6, "ws": 6.4, "vorp": 2.4, "bpm": 2.2}, "contract": {"salary_2025_26": 37096620.0, "salary_2026_27": 49800000.0, "years_remaining": 5, "total_remaining_value": 260200620.0, "guaranteed_total": 260200620.0, "cap_pct": 0.2399, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1609, "predicted_aav": 24887761, "surplus_value": -12208859, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Jerami Grant", "team": "POR", "pos": "PF", "age": 31, "stats": {"gp": 57, "ppg": 18.6, "rpg": 3.5, "apg": 2.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 32000001.0, "salary_2026_27": 34206898.0, "years_remaining": 3, "total_remaining_value": 102620689.0, "guaranteed_total": 66206899.0, "cap_pct": 0.2069, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.19, "predicted_aav": 29387046, "surplus_value": -2612955, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Kon Knueppel", "team": "CHO", "pos": "SF", "age": 20, "stats": {"gp": 81, "ppg": 18.5, "rpg": 5.3, "apg": 3.4, "ts_pct": 0.633, "per": 17.1, "ws": 8.0, "vorp": 3.1, "bpm": 2.8}, "contract": {"salary_2025_26": 10015680.0, "salary_2026_27": 10516560.0, "years_remaining": 4, "total_remaining_value": 45487014.0, "guaranteed_total": 20532240.0, "cap_pct": 0.0648, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.0821, "predicted_aav": 12695149, "surplus_value": 2679469, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "DeMar DeRozan", "team": "SAC", "pos": "PF", "age": 36, "stats": {"gp": 77, "ppg": 18.4, "rpg": 2.9, "apg": 4.1, "ts_pct": 0.594, "per": 17.8, "ws": 5.6, "vorp": 1.1, "bpm": -0.1}, "contract": {"salary_2025_26": 24570000.0, "salary_2026_27": 25740000.0, "years_remaining": 2, "total_remaining_value": 50310000.0, "guaranteed_total": 24570000.0, "cap_pct": 0.1589, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.2276, "predicted_aav": 35197635, "surplus_value": 10627635, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Amen Thompson", "team": "HOU", "pos": "PG", "age": 23, "stats": {"gp": 79, "ppg": 18.3, "rpg": 7.8, "apg": 5.3, "ts_pct": 0.594, "per": 18.9, "ws": 10.3, "vorp": 3.4, "bpm": 2.6}, "contract": {"salary_2025_26": 9690600.0, "salary_2026_27": 12258609.0, "years_remaining": 2, "total_remaining_value": 21949209.0, "guaranteed_total": 21949209.0, "cap_pct": 0.0627, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1769, "predicted_aav": 27355982, "surplus_value": 17665382, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Evan Mobley", "team": "CLE", "pos": "PF", "age": 24, "stats": {"gp": 65, "ppg": 18.2, "rpg": 9.0, "apg": 3.6, "ts_pct": 0.596, "per": 20.0, "ws": 6.5, "vorp": 2.6, "bpm": 3.0}, "contract": {"salary_2025_26": 46394100.0, "salary_2026_27": 50105628.0, "years_remaining": 5, "total_remaining_value": 269085780.0, "guaranteed_total": 269085780.0, "cap_pct": 0.3, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.1775, "predicted_aav": 27453284, "surplus_value": -18940816, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Scottie Barnes", "team": "TOR", "pos": "PF", "age": 24, "stats": {"gp": 80, "ppg": 18.1, "rpg": 7.5, "apg": 5.9, "ts_pct": 0.577, "per": 19.2, "ws": 7.8, "vorp": 4.2, "bpm": 4.2}, "contract": {"salary_2025_26": 38661750.0, "salary_2026_27": 41754690.0, "years_remaining": 5, "total_remaining_value": 224238150.0, "guaranteed_total": 224238150.0, "cap_pct": 0.25, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2061, "predicted_aav": 31866669, "surplus_value": -6795081, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Jalen Green", "team": "PHO", "pos": "SG", "age": 23, "stats": {"gp": 32, "ppg": 17.8, "rpg": 3.6, "apg": 2.8, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 33584499.0, "salary_2026_27": 36251166.0, "years_remaining": 3, "total_remaining_value": 105835665.0, "guaranteed_total": 69835665.0, "cap_pct": 0.2172, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1047, "predicted_aav": 16198607, "surplus_value": -17385892, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Bennedict Mathurin", "team": "TOT", "pos": "SF", "age": 23, "stats": {"gp": 54, "ppg": 17.6, "rpg": 5.4, "apg": 2.4, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 9187573.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 9187573.0, "guaranteed_total": 9187573.0, "cap_pct": 0.0594, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1378, "predicted_aav": 21307229, "surplus_value": 12119656, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Coby White", "team": "TOT", "pos": "SG", "age": 25, "stats": {"gp": 50, "ppg": 17.4, "rpg": 3.4, "apg": 4.0, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 12888889.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 12888889.0, "guaranteed_total": 12888889.0, "cap_pct": 0.0833, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1113, "predicted_aav": 17216183, "surplus_value": 4327294, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Paul George", "team": "PHI", "pos": "PF", "age": 35, "stats": {"gp": 37, "ppg": 17.3, "rpg": 5.3, "apg": 3.6, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 51666090.0, "salary_2026_27": 54126380.0, "years_remaining": 3, "total_remaining_value": 162379140.0, "guaranteed_total": 105792470.0, "cap_pct": 0.3341, "type": "Max / Supermax"}, "valuation": {"predicted_cap_pct": 0.2677, "predicted_aav": 41398750, "surplus_value": -10267340, "grade": "Significant overpay", "small_sample_caveat": true}}, {"player": "Miles Bridges", "team": "CHO", "pos": "PF", "age": 27, "stats": {"gp": 77, "ppg": 17.1, "rpg": 5.8, "apg": 3.2, "ts_pct": 0.57, "per": 16.0, "ws": 6.5, "vorp": 1.9, "bpm": 1.1}, "contract": {"salary_2025_26": 25000000.0, "salary_2026_27": 22826087.0, "years_remaining": 2, "total_remaining_value": 47826087.0, "guaranteed_total": 47826087.0, "cap_pct": 0.1617, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1343, "predicted_aav": 20776612, "surplus_value": -4223388, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Chet Holmgren", "team": "OKC", "pos": "PF", "age": 23, "stats": {"gp": 69, "ppg": 17.1, "rpg": 8.9, "apg": 1.7, "ts_pct": 0.653, "per": 21.6, "ws": 9.1, "vorp": 3.1, "bpm": 4.2}, "contract": {"salary_2025_26": 13731368.0, "salary_2026_27": 41500000.0, "years_remaining": 6, "total_remaining_value": 254431368.0, "guaranteed_total": 254431368.0, "cap_pct": 0.0888, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.201, "predicted_aav": 31084117, "surplus_value": 17352749, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Jalen Williams", "team": "OKC", "pos": "SG", "age": 24, "stats": {"gp": 33, "ppg": 17.1, "rpg": 4.6, "apg": 5.5, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 6580997.0, "salary_2026_27": 41500000.0, "years_remaining": 6, "total_remaining_value": 247280997.0, "guaranteed_total": 247280997.0, "cap_pct": 0.0426, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1678, "predicted_aav": 25957083, "surplus_value": 19376086, "grade": "Significant bargain", "small_sample_caveat": true}}, {"player": "Payton Pritchard", "team": "BOS", "pos": "PG", "age": 28, "stats": {"gp": 79, "ppg": 17.0, "rpg": 3.9, "apg": 5.2, "ts_pct": 0.584, "per": 17.1, "ws": 8.5, "vorp": 2.8, "bpm": 2.3}, "contract": {"salary_2025_26": 7232143.0, "salary_2026_27": 7767857.0, "years_remaining": 3, "total_remaining_value": 23303571.0, "guaranteed_total": 23303571.0, "cap_pct": 0.0468, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1237, "predicted_aav": 19124309, "surplus_value": 11892166, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Josh Giddey", "team": "CHI", "pos": "PG", "age": 23, "stats": {"gp": 54, "ppg": 17.0, "rpg": 8.3, "apg": 9.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 25000000.0, "salary_2026_27": 25000000.0, "years_remaining": 4, "total_remaining_value": 100000000.0, "guaranteed_total": 100000000.0, "cap_pct": 0.1617, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1426, "predicted_aav": 22052300, "surplus_value": -2947700, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Andrew Nembhard", "team": "IND", "pos": "PG", "age": 26, "stats": {"gp": 57, "ppg": 16.9, "rpg": 2.8, "apg": 7.7, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 18102000.0, "salary_2026_27": 19550160.0, "years_remaining": 3, "total_remaining_value": 58650480.0, "guaranteed_total": 58650480.0, "cap_pct": 0.1171, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.162, "predicted_aav": 25056232, "surplus_value": 6954232, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Stephon Castle", "team": "SAS", "pos": "PG", "age": 21, "stats": {"gp": 68, "ppg": 16.7, "rpg": 5.3, "apg": 7.4, "ts_pct": 0.575, "per": 17.4, "ws": 5.8, "vorp": 2.0, "bpm": 1.9}, "contract": {"salary_2025_26": 9560520.0, "salary_2026_27": 10015920.0, "years_remaining": 3, "total_remaining_value": 32246579.0, "guaranteed_total": 19576440.0, "cap_pct": 0.0618, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1173, "predicted_aav": 18144958, "surplus_value": 8584438, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "OG Anunoby", "team": "NYK", "pos": "PF", "age": 28, "stats": {"gp": 67, "ppg": 16.7, "rpg": 5.2, "apg": 2.2, "ts_pct": 0.62, "per": 15.8, "ws": 6.3, "vorp": 2.3, "bpm": 2.0}, "contract": {"salary_2025_26": 39568966.0, "salary_2026_27": 42500000.0, "years_remaining": 4, "total_remaining_value": 175862068.0, "guaranteed_total": 127500000.0, "cap_pct": 0.2559, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1661, "predicted_aav": 25684243, "surplus_value": -13884723, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Derrick White", "team": "BOS", "pos": "SG", "age": 31, "stats": {"gp": 77, "ppg": 16.5, "rpg": 4.4, "apg": 5.4, "ts_pct": 0.529, "per": 16.0, "ws": 7.0, "vorp": 3.5, "bpm": 3.2}, "contract": {"salary_2025_26": 28100000.0, "salary_2026_27": 30348000.0, "years_remaining": 4, "total_remaining_value": 125888000.0, "guaranteed_total": 91044000.0, "cap_pct": 0.1817, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1956, "predicted_aav": 30249707, "surplus_value": 2149707, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Immanuel Quickley", "team": "TOR", "pos": "PG", "age": 26, "stats": {"gp": 70, "ppg": 16.4, "rpg": 4.0, "apg": 5.9, "ts_pct": 0.577, "per": 16.6, "ws": 6.5, "vorp": 2.5, "bpm": 2.4}, "contract": {"salary_2025_26": 32500000.0, "salary_2026_27": 32500000.0, "years_remaining": 4, "total_remaining_value": 130000000.0, "guaranteed_total": 130000000.0, "cap_pct": 0.2102, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.1157, "predicted_aav": 17898470, "surplus_value": -14601530, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Jrue Holiday", "team": "POR", "pos": "PG", "age": 35, "stats": {"gp": 53, "ppg": 16.3, "rpg": 4.6, "apg": 6.1, "ts_pct": 0.573, "per": 16.4, "ws": 3.6, "vorp": 1.6, "bpm": 1.9}, "contract": {"salary_2025_26": 32400000.0, "salary_2026_27": 34800000.0, "years_remaining": 3, "total_remaining_value": 104400000.0, "guaranteed_total": 67200000.0, "cap_pct": 0.2095, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.2261, "predicted_aav": 34965198, "surplus_value": 2565198, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Alex Sarr", "team": "WAS", "pos": "C", "age": 20, "stats": {"gp": 48, "ppg": 16.3, "rpg": 7.4, "apg": 2.7, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 11808240.0, "salary_2026_27": 12370680.0, "years_remaining": 3, "total_remaining_value": 39790718.0, "guaranteed_total": 24178920.0, "cap_pct": 0.0764, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "Aaron Gordon", "team": "DEN", "pos": "PF", "age": 30, "stats": {"gp": 36, "ppg": 16.2, "rpg": 5.8, "apg": 2.7, "ts_pct": 0.62, "per": 18.5, "ws": 3.2, "vorp": 0.9, "bpm": 1.7}, "contract": {"salary_2025_26": 22841455.0, "salary_2026_27": 33658037.0, "years_remaining": 4, "total_remaining_value": 131893495.0, "guaranteed_total": 92850172.0, "cap_pct": 0.1477, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1939, "predicted_aav": 29984219, "surplus_value": 7142764, "grade": "Good value", "small_sample_caveat": true}}, {"player": "VJ Edgecombe", "team": "PHI", "pos": "SG", "age": 20, "stats": {"gp": 75, "ppg": 16.0, "rpg": 5.6, "apg": 4.2, "ts_pct": 0.54, "per": 14.0, "ws": 4.4, "vorp": 1.0, "bpm": -0.5}, "contract": {"salary_2025_26": 11108880.0, "salary_2026_27": 11663880.0, "years_remaining": 4, "total_remaining_value": 50438207.0, "guaranteed_total": 22772760.0, "cap_pct": 0.0718, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1002, "predicted_aav": 15488236, "surplus_value": 4379356, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "Jarrett Allen", "team": "CLE", "pos": "C", "age": 27, "stats": {"gp": 56, "ppg": 15.4, "rpg": 8.5, "apg": 1.8, "ts_pct": 0.669, "per": 22.1, "ws": 6.4, "vorp": 1.8, "bpm": 2.6}, "contract": {"salary_2025_26": 20000000.0, "salary_2026_27": 28000000.0, "years_remaining": 4, "total_remaining_value": 110720000.0, "guaranteed_total": 110720000.0, "cap_pct": 0.1293, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1867, "predicted_aav": 28866358, "surplus_value": 8866358, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Onyeka Okongwu", "team": "ATL", "pos": "C", "age": 25, "stats": {"gp": 74, "ppg": 15.2, "rpg": 7.6, "apg": 3.1, "ts_pct": 0.592, "per": 15.9, "ws": 6.0, "vorp": 1.6, "bpm": 0.7}, "contract": {"salary_2025_26": 15000000.0, "salary_2026_27": 16120000.0, "years_remaining": 3, "total_remaining_value": 48000000.0, "guaranteed_total": 48000000.0, "cap_pct": 0.097, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1578, "predicted_aav": 24403837, "surplus_value": 9403837, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Mikal Bridges", "team": "NYK", "pos": "SF", "age": 29, "stats": {"gp": 82, "ppg": 14.4, "rpg": 3.8, "apg": 3.7, "ts_pct": 0.587, "per": 15.3, "ws": 8.0, "vorp": 3.2, "bpm": 2.7}, "contract": {"salary_2025_26": 24900000.0, "salary_2026_27": 33482145.0, "years_remaining": 5, "total_remaining_value": 174900000.0, "guaranteed_total": 133382144.0, "cap_pct": 0.161, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1519, "predicted_aav": 23497487, "surplus_value": -1402513, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Jeremiah Fears", "team": "NOP", "pos": "PG", "age": 19, "stats": {"gp": 82, "ppg": 14.3, "rpg": 3.7, "apg": 3.4, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 7520040.0, "salary_2026_27": 7896240.0, "years_remaining": 4, "total_remaining_value": 34193629.0, "guaranteed_total": 15416280.0, "cap_pct": 0.0486, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "P.J. Washington", "team": "DAL", "pos": "PF", "age": 27, "stats": {"gp": 56, "ppg": 14.2, "rpg": 7.0, "apg": 1.8, "ts_pct": 0.537, "per": 13.1, "ws": 1.7, "vorp": 0.2, "bpm": -1.6}, "contract": {"salary_2025_26": 14152174.0, "salary_2026_27": 19813044.0, "years_remaining": 5, "total_remaining_value": 102914614.0, "guaranteed_total": 102914614.0, "cap_pct": 0.0915, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1815, "predicted_aav": 28074063, "surplus_value": 13921889, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Ivica Zubac", "team": "TOT", "pos": "C", "age": 28, "stats": {"gp": 48, "ppg": 14.1, "rpg": 10.6, "apg": 2.2, "ts_pct": 0.622, "per": 18.6, "ws": 4.2, "vorp": 0.6, "bpm": -0.3}, "contract": {"salary_2025_26": 18893980.0, "salary_2026_27": 20342140.0, "years_remaining": 3, "total_remaining_value": 61026420.0, "guaranteed_total": 61026420.0, "cap_pct": 0.1222, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.189, "predicted_aav": 29233644, "surplus_value": 10339664, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Tre Jones", "team": "CHI", "pos": "PG", "age": 26, "stats": {"gp": 65, "ppg": 14.1, "rpg": 3.1, "apg": 5.4, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 8000000.0, "salary_2026_27": 8000000.0, "years_remaining": 3, "total_remaining_value": 24000000.0, "guaranteed_total": 16000000.0, "cap_pct": 0.0517, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1585, "predicted_aav": 24505661, "surplus_value": 16505661, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Devin Vassell", "team": "SAS", "pos": "SG", "age": 25, "stats": {"gp": 67, "ppg": 13.9, "rpg": 4.0, "apg": 2.5, "ts_pct": 0.574, "per": 13.0, "ws": 4.9, "vorp": 1.3, "bpm": 0.5}, "contract": {"salary_2025_26": 27000000.0, "salary_2026_27": 27000000.0, "years_remaining": 4, "total_remaining_value": 105652174.0, "guaranteed_total": 105652174.0, "cap_pct": 0.1746, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.0894, "predicted_aav": 13830529, "surplus_value": -13169471, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "De'Andre Hunter", "team": "TOT", "pos": "SF", "age": 28, "stats": {"gp": 45, "ppg": 13.7, "rpg": 4.1, "apg": 2.0, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 23303571.0, "salary_2026_27": 24910714.0, "years_remaining": 2, "total_remaining_value": 48214285.0, "guaranteed_total": 48214285.0, "cap_pct": 0.1507, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1408, "predicted_aav": 21779166, "surplus_value": -1524405, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Naz Reid", "team": "MIN", "pos": "C", "age": 26, "stats": {"gp": 77, "ppg": 13.6, "rpg": 6.2, "apg": 2.2, "ts_pct": 0.565, "per": 15.4, "ws": 4.0, "vorp": 1.5, "bpm": 0.9}, "contract": {"salary_2025_26": 21551724.0, "salary_2026_27": 23275862.0, "years_remaining": 5, "total_remaining_value": 125000000.0, "guaranteed_total": 96551724.0, "cap_pct": 0.1394, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1555, "predicted_aav": 24045935, "surplus_value": 2494211, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Tobias Harris", "team": "DET", "pos": "PF", "age": 33, "stats": {"gp": 63, "ppg": 13.3, "rpg": 5.1, "apg": 2.5, "ts_pct": 0.574, "per": 15.0, "ws": 5.3, "vorp": 1.5, "bpm": 1.4}, "contract": {"salary_2025_26": 26634146.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 26634146.0, "guaranteed_total": 26634146.0, "cap_pct": 0.1722, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1654, "predicted_aav": 25582710, "surplus_value": -1051436, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Kyle Kuzma", "team": "MIL", "pos": "PF", "age": 30, "stats": {"gp": 69, "ppg": 13.0, "rpg": 4.5, "apg": 2.7, "ts_pct": 0.581, "per": 14.1, "ws": 1.9, "vorp": -0.1, "bpm": -2.3}, "contract": {"salary_2025_26": 22410605.0, "salary_2026_27": 20345152.0, "years_remaining": 2, "total_remaining_value": 42755757.0, "guaranteed_total": 42755757.0, "cap_pct": 0.1449, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1691, "predicted_aav": 26156292, "surplus_value": 3745687, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Deandre Ayton", "team": "LAL", "pos": "C", "age": 27, "stats": {"gp": 72, "ppg": 12.5, "rpg": 8.0, "apg": 0.8, "ts_pct": 0.676, "per": 18.2, "ws": 6.2, "vorp": 0.6, "bpm": -0.9}, "contract": {"salary_2025_26": 33654814.0, "salary_2026_27": 8104000.0, "years_remaining": 2, "total_remaining_value": 41758814.0, "guaranteed_total": 25550814.0, "cap_pct": 0.2176, "type": "Veteran (above-MLE)"}, "valuation": {"predicted_cap_pct": 0.0959, "predicted_aav": 14827722, "surplus_value": -18827092, "grade": "Significant overpay", "small_sample_caveat": false}}, {"player": "Cameron Johnson", "team": "DEN", "pos": "SF", "age": 29, "stats": {"gp": 54, "ppg": 12.2, "rpg": 3.8, "apg": 2.4, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 21057065.0, "salary_2026_27": 23062500.0, "years_remaining": 2, "total_remaining_value": 44119565.0, "guaranteed_total": 44119565.0, "cap_pct": 0.1362, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1342, "predicted_aav": 20757458, "surplus_value": -299607, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Donte DiVincenzo", "team": "MIN", "pos": "SG", "age": 29, "stats": {"gp": 82, "ppg": 12.2, "rpg": 4.1, "apg": 3.8, "ts_pct": 0.567, "per": 12.5, "ws": 5.2, "vorp": 1.7, "bpm": 0.8}, "contract": {"salary_2025_26": 11990000.0, "salary_2026_27": 12535000.0, "years_remaining": 2, "total_remaining_value": 24525000.0, "guaranteed_total": 24525000.0, "cap_pct": 0.0775, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1404, "predicted_aav": 21716293, "surplus_value": 9726293, "grade": "Significant bargain", "small_sample_caveat": false}}, {"player": "Duncan Robinson", "team": "DET", "pos": "SG", "age": 31, "stats": {"gp": 77, "ppg": 12.2, "rpg": 2.7, "apg": 2.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 16834692.0, "salary_2026_27": 15992957.0, "years_remaining": 3, "total_remaining_value": 47978871.0, "guaranteed_total": 16834692.0, "cap_pct": 0.1089, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1492, "predicted_aav": 23076733, "surplus_value": 6242041, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Donovan Clingan", "team": "POR", "pos": "C", "age": 21, "stats": {"gp": 77, "ppg": 12.1, "rpg": 11.6, "apg": 2.1, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 7178400.0, "salary_2026_27": 7519920.0, "years_remaining": 3, "total_remaining_value": 24248618.0, "guaranteed_total": 14698320.0, "cap_pct": 0.0464, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "Josh Hart", "team": "NYK", "pos": "SF", "age": 30, "stats": {"gp": 66, "ppg": 12.0, "rpg": 7.4, "apg": 4.8, "ts_pct": 0.612, "per": 15.7, "ws": 6.1, "vorp": 2.5, "bpm": 3.0}, "contract": {"salary_2025_26": 19472240.0, "salary_2026_27": 20923760.0, "years_remaining": 3, "total_remaining_value": 62771280.0, "guaranteed_total": 40396000.0, "cap_pct": 0.1259, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.141, "predicted_aav": 21804632, "surplus_value": 2332392, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Dyson Daniels", "team": "ATL", "pos": "SG", "age": 22, "stats": {"gp": 76, "ppg": 11.9, "rpg": 6.8, "apg": 5.9, "ts_pct": 0.542, "per": 15.5, "ws": 6.6, "vorp": 2.1, "bpm": 1.3}, "contract": {"salary_2025_26": 7707709.0, "salary_2026_27": 25000000.0, "years_remaining": 5, "total_remaining_value": 107707709.0, "guaranteed_total": 107707709.0, "cap_pct": 0.0498, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.0924, "predicted_aav": 14285368, "surplus_value": 6577659, "grade": "Rookie scale (locked-in value)", "small_sample_caveat": false}}, {"player": "Myles Turner", "team": "MIL", "pos": "C", "age": 29, "stats": {"gp": 71, "ppg": 11.9, "rpg": 5.3, "apg": 1.5, "ts_pct": 0.584, "per": 14.2, "ws": 3.0, "vorp": 0.5, "bpm": -0.9}, "contract": {"salary_2025_26": 25318251.0, "salary_2026_27": 26584164.0, "years_remaining": 4, "total_remaining_value": 108868482.0, "guaranteed_total": 79752492.0, "cap_pct": 0.1637, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1634, "predicted_aav": 25275849, "surplus_value": -42402, "grade": "Fair value", "small_sample_caveat": false}}, {"player": "Wendell Carter Jr.", "team": "ORL", "pos": "C", "age": 26, "stats": {"gp": 78, "ppg": 11.8, "rpg": 7.4, "apg": 2.0, "ts_pct": 0.617, "per": 14.1, "ws": 6.2, "vorp": 0.8, "bpm": -0.6}, "contract": {"salary_2025_26": 10850000.0, "salary_2026_27": 18102000.0, "years_remaining": 4, "total_remaining_value": 69500480.0, "guaranteed_total": 48502160.0, "cap_pct": 0.0702, "type": "Veteran"}, "valuation": {"predicted_cap_pct": 0.1101, "predicted_aav": 17031131, "surplus_value": 6181131, "grade": "Good value", "small_sample_caveat": false}}, {"player": "Nic Claxton", "team": "BRK", "pos": "C", "age": 26, "stats": {"gp": 69, "ppg": 11.7, "rpg": 6.9, "apg": 3.7, "ts_pct": 0.592, "per": 17.6, "ws": 4.8, "vorp": 1.4, "bpm": 0.9}, "contract": {"salary_2025_26": 25352272.0, "salary_2026_27": 23147727.0, "years_remaining": 3, "total_remaining_value": 69443183.0, "guaranteed_total": 69443183.0, "cap_pct": 0.1639, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.1283, "predicted_aav": 19845168, "surplus_value": -5507104, "grade": "Slight overpay", "small_sample_caveat": false}}, {"player": "Jarace Walker", "team": "IND", "pos": "PF", "age": 22, "stats": {"gp": 76, "ppg": 11.6, "rpg": 5.1, "apg": 2.5, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 6665520.0, "salary_2026_27": 8478542.0, "years_remaining": 2, "total_remaining_value": 15144062.0, "guaranteed_total": 15144062.0, "cap_pct": 0.0431, "type": "Veteran"}, "valuation": {"predicted_cap_pct": null, "predicted_aav": null, "surplus_value": null, "grade": "Unknown", "small_sample_caveat": false}}, {"player": "Rui Hachimura", "team": "LAL", "pos": "PF", "age": 27, "stats": {"gp": 68, "ppg": 11.5, "rpg": 3.3, "apg": 0.8, "ts_pct": null, "per": null, "ws": null, "vorp": null, "bpm": null}, "contract": {"salary_2025_26": 18259259.0, "salary_2026_27": null, "years_remaining": 1, "total_remaining_value": 18259259.0, "guaranteed_total": 18259259.0, "cap_pct": 0.1181, "type": "Mid-level range"}, "valuation": {"predicted_cap_pct": 0.0806, "predicted_aav": 12470476, "surplus_value": -5788783, "grade": "Slight overpay", "small_sample_caveat": false}}], "teams": [{"team": "NYK", "known_payroll": 172027471, "apron_status": "Over the cap", "available_exceptions": ["non_taxpayer_mle", "bi_annual"]}, {"team": "LAL", "known_payroll": 164478460, "apron_status": "Over the cap", "available_exceptions": ["non_taxpayer_mle", "bi_annual"]}, {"team": "PHI", "known_payroll": 155958256, "apron_status": "Over the cap", "available_exceptions": ["non_taxpayer_mle", "bi_annual"]}, {"team": "DEN", "known_payroll": 145517146, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "BOS", "known_payroll": 142600857, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "TOR", "known_payroll": 136962345, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "GSW", "known_payroll": 113733267, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "CLE", "known_payroll": 112788200, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "MIN", "known_payroll": 109956434, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "PHO", "known_payroll": 107850873, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "MIL", "known_payroll": 101855306, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "ORL", "known_payroll": 101572189, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "HOU", "known_payroll": 98344163, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "DET", "known_payroll": 96346082, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "POR", "known_payroll": 94353384, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "MIA", "known_payroll": 88579378, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "SAS", "known_payroll": 87034020, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "CHO", "known_payroll": 84943240, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "DAL", "known_payroll": 82104544, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "SAC", "known_payroll": 72069660, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "NOP", "known_payroll": 71966130, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "IND", "known_payroll": 70318032, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "ATL", "known_payroll": 67869509, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "BRK", "known_payroll": 63685322, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "OKC", "known_payroll": 58645415, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "LAC", "known_payroll": 50000000, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "UTA", "known_payroll": 46394100, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "MEM", "known_payroll": 39446090, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "CHI", "known_payroll": 33000000, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}, {"team": "WAS", "known_payroll": 11808240, "apron_status": "Cap room", "available_exceptions": ["non_taxpayer_mle", "bi_annual", "room_mle"]}]};
+
+const fmtM = n => n == null ? '—' : '$' + (n/1_000_000).toFixed(1) + 'M';
+const fmtFull = n => n == null ? '—' : '$' + Math.round(n).toLocaleString();
+const fmtPct = n => n == null ? '—' : (n*100).toFixed(1) + '%';
+
+const gradeClass = {
+  'Significant bargain': 'chip-bargain2',
+  'Good value': 'chip-bargain',
+  'Fair value': 'chip-fair',
+  'Slight overpay': 'chip-overpay',
+  'Significant overpay': 'chip-overpay2',
+  'Rookie scale (locked-in value)': 'chip-rookie',
+  'Unknown': 'chip-fair'
+};
+
+function buildGauge(container, fillFrac, fillLabel, height) {
+  const meta = DATA.meta;
+  const cap = meta.cap, tax = meta.tax, a1 = meta.apron1, a2 = meta.apron2;
+  const maxScale = a2 * 1.18;
+  const pCap = (cap/maxScale*100).toFixed(2)+'%';
+  const pTax = (tax/maxScale*100).toFixed(2)+'%';
+  const pA1 = (a1/maxScale*100).toFixed(2)+'%';
+  const fillPct = Math.min(fillFrac, 1) * 100;
+  const h = height || 34;
+  const el = document.createElement('div');
+  el.innerHTML = `
+    <div class="gauge-track" style="--p-cap:${pCap};--p-tax:${pTax};--p-a1:${pA1};height:${h}px;">
+      <div class="gauge-fill" style="width:${fillPct}%;">
+        <span class="gauge-fill-label">${fillLabel}</span>
+      </div>
+      <div class="gauge-marker" style="left:${pCap};"><span class="tag">CAP</span><span class="amt">${fmtM(cap)}</span></div>
+      <div class="gauge-marker" style="left:${pTax};"><span class="tag">TAX</span><span class="amt">${fmtM(tax)}</span></div>
+      <div class="gauge-marker" style="left:${pA1};"><span class="tag">1ST APRON</span><span class="amt">${fmtM(a1)}</span></div>
+      <div class="gauge-marker" style="left:${(a2/maxScale*100).toFixed(2)}%;"><span class="tag">2ND APRON</span><span class="amt">${fmtM(a2)}</span></div>
+    </div>
+    <div class="legend-row">
+      <div class="legend-item"><span class="legend-dot" style="background:#1C2436;"></span>Cap room</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2A2417;"></span>Taxpayer</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2E1F1A;"></span>First apron</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2E1517;"></span>Second apron (hard cap)</div>
+    </div>
+  `;
+  container.appendChild(el);
+}
+
+function renderTopStats(){
+  const m = DATA.meta;
+  const el = document.getElementById('topStats');
+  const items = [
+    ['Salary cap', fmtM(m.cap)],
+    ['Luxury tax', fmtM(m.tax)],
+    ['1st apron', fmtM(m.apron1)],
+    ['2nd apron', fmtM(m.apron2)],
+    ["'26-27 cap", fmtM(m.next_cap)],
+  ];
+  el.innerHTML = items.map(([l,v]) => `<div class="top-stat"><div class="label">${l}</div><div class="value">${v}</div></div>`).join('');
+  document.getElementById('ftrainN').textContent = m.n_training_players;
+}
+
+function renderLeagueGauge(){
+  const container = document.getElementById('leagueGauge');
+  // compute average team payroll from our dataset as the fill reference
+  const avgPayroll = DATA.teams.reduce((sum, t) => sum + t.known_payroll, 0) / DATA.teams.length;
+  const maxScale = DATA.meta.apron2 * 1.18;
+  buildGauge(container, avgPayroll / maxScale, 'avg tracked payroll', 40);
+}
+
+let sortKey = 'salary_2025_26', sortDir = -1;
+
+function flatten(p){
+  return {
+    player: p.player, team: p.team, pos: p.pos, age: p.age,
+    salary_2025_26: p.contract.salary_2025_26,
+    cap_pct: p.contract.cap_pct,
+    type: p.contract.type,
+    years_remaining: p.contract.years_remaining,
+    surplus_value: p.valuation.surplus_value,
+    grade: p.valuation.grade,
+    small_sample: p.valuation.small_sample_caveat,
+    raw: p
+  };
+}
+
+const FLAT = DATA.players.map(flatten);
+
+function populateFilters(){
+  const grades = [...new Set(FLAT.map(p=>p.grade))].sort();
+  const gradeSel = document.getElementById('gradeFilter');
+  grades.forEach(g => {
+    const o = document.createElement('option'); o.value = g; o.textContent = g; gradeSel.appendChild(o);
+  });
+  const teams = [...new Set(FLAT.map(p=>p.team))].sort();
+  const teamSel = document.getElementById('teamFilter');
+  teams.forEach(t => {
+    const o = document.createElement('option'); o.value = t; o.textContent = t; teamSel.appendChild(o);
+  });
+}
+
+function currentFilters(){
+  return {
+    q: document.getElementById('searchBox').value.trim().toLowerCase(),
+    grade: document.getElementById('gradeFilter').value,
+    team: document.getElementById('teamFilter').value,
+  };
+}
+
+function renderTable(){
+  const {q, grade, team} = currentFilters();
+  let rows = FLAT.filter(p => {
+    if (q && !(p.player.toLowerCase().includes(q) || p.team.toLowerCase().includes(q))) return false;
+    if (grade && p.grade !== grade) return false;
+    if (team && p.team !== team) return false;
+    return true;
+  });
+  rows.sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') { av = av || ''; bv = bv || ''; return av.localeCompare(bv) * sortDir; }
+    av = av == null ? -Infinity : av; bv = bv == null ? -Infinity : bv;
+    return (av - bv) * sortDir;
+  });
+  document.getElementById('resultCount').textContent = rows.length + ' players';
+  const tbody = document.getElementById('playerRows');
+  tbody.innerHTML = rows.map(p => `
+    <tr data-player="${encodeURIComponent(p.player)}">
+      <td><div class="player-name">${p.player}</div><div class="player-meta">${p.pos||''} · Age ${p.age||'—'}${p.small_sample ? '<span class="caveat-flag">· small sample</span>':''}</div></td>
+      <td class="num">${p.team}</td>
+      <td class="num right">${fmtM(p.salary_2025_26)}</td>
+      <td class="num right">${fmtPct(p.cap_pct)}</td>
+      <td>${p.type}</td>
+      <td class="num right" style="color:${p.surplus_value>0?'var(--emerald)':'var(--red)'}">${p.surplus_value>0?'+':''}${fmtM(p.surplus_value)}</td>
+      <td><span class="chip ${gradeClass[p.grade]||'chip-fair'}">${p.grade}</span></td>
+    </tr>
+  `).join('');
+  [...tbody.querySelectorAll('tr')].forEach(tr => {
+    tr.addEventListener('click', () => openModal(decodeURIComponent(tr.dataset.player)));
+  });
+}
+
+document.querySelectorAll('thead th[data-key]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+    document.querySelectorAll('thead th').forEach(t=>t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    renderTable();
+  });
+});
+
+document.getElementById('searchBox').addEventListener('input', renderTable);
+document.getElementById('gradeFilter').addEventListener('change', renderTable);
+document.getElementById('teamFilter').addEventListener('change', renderTable);
+
+function openModal(playerName){
+  const p = DATA.players.find(x => x.player === playerName);
+  if (!p) return;
+  const m = document.getElementById('modalContent');
+  const c = p.contract;
+  const contractYears = [
+    ['2025-26', c.salary_2025_26],
+    ['2026-27', c.salary_2026_27],
+  ];
+  const maxAmt = Math.max(...contractYears.map(y=>y[1]||0), 1);
+  let timelineHtml = '';
+  contractYears.forEach(([yr, amt]) => {
+    if (amt == null) return;
+    const nextCapPct = yr === '2026-27' ? (amt / DATA.meta.next_cap * 100).toFixed(1) : null;
+    const capPctNote = nextCapPct ? ` <span style="color:var(--text-faint);font-size:10px;">(${nextCapPct}% of '26-27 cap)</span>` : '';
+    timelineHtml += `
+      <div class="timeline-row">
+        <div class="timeline-year">${yr}</div>
+        <div class="timeline-bar-bg"><div class="timeline-bar-fill" style="width:${(amt/maxAmt*100).toFixed(1)}%"></div></div>
+        <div class="timeline-amt">${fmtM(amt)}${capPctNote}</div>
+      </div>`;
+  });
+
+  const surplusColor = p.valuation.surplus_value > 0 ? 'var(--emerald)' : 'var(--red)';
+  const gradeBg = p.valuation.surplus_value > 0 ? 'rgba(62,217,163,.12)' : 'rgba(255,98,98,.12)';
+
+  m.innerHTML = `
+    <button class="modal-close" id="modalClose">✕</button>
+    <h2>${p.player}</h2>
+    <div class="sub">${p.team} · ${p.pos} · Age ${p.age} · ${p.contract.years_remaining||'?'} yr(s) remaining on deal · ${p.stats.gp ?? '—'} GP this season</div>
+
+    <div class="stat-grid">
+      <div class="stat-box"><div class="l">PPG / RPG / APG</div><div class="v" style="font-size:14px;">${p.stats.ppg ?? '—'} / ${p.stats.rpg ?? '—'} / ${p.stats.apg ?? '—'}</div></div>
+      <div class="stat-box"><div class="l">TS%</div><div class="v">${p.stats.ts_pct!=null ? (p.stats.ts_pct*100).toFixed(1)+'%' : '—'}</div></div>
+      <div class="stat-box"><div class="l">WS</div><div class="v">${p.stats.ws ?? '—'}</div></div>
+      <div class="stat-box"><div class="l">VORP / BPM</div><div class="v" style="font-size:14px;">${p.stats.vorp ?? '—'} / ${p.stats.bpm ?? '—'}</div></div>
+    </div>
+    ${p.valuation.small_sample_caveat ? `<div class="note" style="margin-top:-10px;margin-bottom:14px;">⚠ Limited sample this season (${p.stats.gp} GP) — valuation below is noisier than for a full season.</div>` : ''}
+
+    <div class="section-label">Contract timeline</div>
+    <div class="timeline">${timelineHtml || '<div class="note">No multi-year contract data available.</div>'}</div>
+    <div class="note">Guaranteed total (all remaining years): ${fmtFull(p.contract.guaranteed_total)} · Cap hit this season: ${fmtPct(p.contract.cap_pct)} of the cap · Contract type: ${p.contract.type}</div>
+
+    <div class="section-label">Performance-based valuation</div>
+    <div class="value-compare">
+      <div class="vc-box"><div class="l">Actual 2025-26 salary</div><div class="v">${fmtM(p.contract.salary_2025_26)}</div></div>
+      <div class="vc-box"><div class="l">Model-predicted value</div><div class="v">${fmtM(p.valuation.predicted_aav)}</div></div>
+      <div class="vc-box"><div class="l">Surplus</div><div class="v" style="color:${surplusColor}">${p.valuation.surplus_value>0?'+':''}${fmtM(p.valuation.surplus_value)}</div></div>
+    </div>
+    <div class="grade-banner" style="background:${gradeBg};color:${surplusColor}">
+      <strong>${p.valuation.grade}.</strong>
+      ${p.contract.type === 'Rookie scale' ? ' Rookie-scale salaries are fixed by draft position, not performance — so this is the design intent, not a front-office mistake.' :
+        p.valuation.surplus_value > 0 ? ' Performance this season projects to a higher cap percentage than the actual deal pays.' :
+        ' Performance this season projects to a lower cap percentage than the actual deal pays — common for max/supermax players whose ceiling is capped by CBA rules regardless of true value, or for players having an injury-shortened season.'}
+    </div>
+  `;
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+document.getElementById('modalBg').addEventListener('click', e => { if (e.target.id === 'modalBg') closeModal(); });
+
+function renderTeams(){
+  const grid = document.getElementById('teamGrid');
+  const teams = [...DATA.teams].sort((a,b) => b.known_payroll - a.known_payroll);
+  const maxScale = DATA.meta.apron2 * 1.15;
+  grid.innerHTML = teams.map(t => {
+    const pct = Math.min(t.known_payroll / maxScale, 1) * 100;
+    const statusColor = t.apron_status.includes('Second') ? 'var(--red)' :
+                         t.apron_status.includes('First') ? 'var(--amber)' :
+                         t.apron_status.includes('tax') ? 'var(--violet)' : 'var(--emerald)';
+    return `
+      <div class="team-card" data-team="${t.team}">
+        <div class="tname">${t.team}</div>
+        <div class="tstatus" style="color:${statusColor}">${t.apron_status}</div>
+        <div class="team-mini-gauge"><div class="team-mini-fill" style="width:${pct}%"></div></div>
+        <div class="team-payroll">${fmtM(t.known_payroll)} <span style="color:var(--text-faint);font-size:10.5px;">tracked payroll</span></div>
+        <div class="team-exceptions">Exceptions available: ${t.available_exceptions.length ? t.available_exceptions.join(', ').replace(/_/g,' ') : 'none (hard-capped)'}</div>
+      </div>`;
+  }).join('');
+  [...grid.querySelectorAll('.team-card')].forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelector('.tab-btn[data-tab="players"]').click();
+      document.getElementById('teamFilter').value = c.dataset.team;
+      renderTable();
+    });
+  });
+}
+
+const GLOSSARY = [
+  ['Rookie scale', 'First-round picks sign 4-year deals at a fixed amount set by draft position — years 1-2 guaranteed, years 3-4 team options. Pay has nothing to do with performance, which is why rookie-scale players almost always show as "bargains" here by construction.'],
+  ['Max contract tiers', 'A player max salary is capped at 25%, 30%, or 35% of the cap depending on years of service (0-6 / 7-9 / 10+). Two players with identical production can have very different max ceilings just based on tenure.'],
+  ['Supermax / Rose Rule', 'A 7-9 year veteran can sign for 35% of the cap (the 10+ year max) if they made All-NBA, won MVP, or won DPOY in the qualifying window — but only with the team that drafted them (with narrow exceptions). This is how Tatum, SGA, and similar players reach 35% before turning 30.'],
+  ['Bird rights', 'Lets a team re-sign its own free agent above the cap. Full Bird (3+ years, up to the individual max), Early Bird (2 years, lesser of 175% of prior salary or league average), Non-Bird (under 2 years, capped at 120% of prior salary). This is why teams can keep their own free agent even when over the cap.'],
+  ['Mid-level exception', 'Lets over-the-cap teams sign outside free agents anyway. The amount depends on apron status: non-taxpayer MLE (~$14.1M) for teams below the first apron, taxpayer MLE (~$5.7M) for first-apron teams, room MLE (~$8.4M) for cap-space teams. Second-apron teams get none.'],
+  ['First apron', 'A soft threshold (~$196M in 2025-26) above the tax line. Crossing it restricts sign-and-trades, the bi-annual exception, and how much salary a team can take back in trades.'],
+  ['Second apron (hard cap)', 'The most consequential 2023 CBA addition. Teams over it (~$208M in 2025-26) cannot aggregate salaries in trades, cannot send cash, cannot take back more salary than they send out, lose access to nearly every exception, and risk a frozen first-round pick if they stay there repeatedly.'],
+  ['Contract options', 'Player options let the player choose to opt out and re-enter free agency; team options let the team decide whether to keep the player. Both create real uncertainty in a guaranteed-total figure that a surface-level salary table does not show.'],
+  ['Cap holds and Bird math', 'A free agent cap hold (a placeholder charge against the cap until they re-sign or are renounced) is what actually determines a team effective cap room — not just the sum of signed contracts. Not modeled in this v1; flagged as a known next step.'],
+];
+
+function renderGlossary(){
+  const grid = document.getElementById('glossaryGrid');
+  grid.innerHTML = GLOSSARY.map(([t,d]) => `<div class="gloss-card"><h3>${t}</h3><p>${d}</p></div>`).join('');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+renderTopStats();
+renderLeagueGauge();
+populateFilters();
+renderTable();
+renderTeams();
+renderGlossary();
+</script>
+</body>
+</html>
