@@ -5,10 +5,11 @@ against current performance, built with actual 2023 CBA mechanics (rookie
 scale, max tiers, supermax, Bird rights, the apron system) instead of
 treating "salary" as an undifferentiated number.
 
+**Live Demo:** [Launch the NBA Contract Analyzer](https://ameyamprojects.github.io/Nba-Contract-Analyzer/)
+
 **Open `app/index.html` in a browser to use it.** Everything is static - no
 server needed. It's built from a real, live snapshot of 2025-26 contracts and
 stats pulled from basketball-reference.com.
-
 ## What changed from the 2022 version
 
 The original project (`1-scrape.ipynb` → `4-prepare.ipynb`) scraped 5 years
