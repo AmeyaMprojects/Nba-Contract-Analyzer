@@ -1,0 +1,7 @@
+{
+  "date": "2026-07-16",
+  "fonts": "Space Grotesk, Inter, IBM Plex Mono",
+  "palette": "dark navy with accent tokens",
+  "motion": "CSS transitions only",
+  "framework": "vanilla HTML"
+}
